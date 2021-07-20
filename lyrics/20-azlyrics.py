@@ -52,26 +52,38 @@ def html_elements_to_text(s):
 def html_to_text(s):
     return html.unescape(html_elements_to_text(s))
 
-artist = normalize_parameter(sys.argv[1])
+artists = normalize_parameter(sys.argv[1])
 title = normalize_parameter(sys.argv[2])
-artist = re.sub("[^A-Za-z0-9]+", "", artist)
+artists = [
+    artist.removeprefix('the ')
+    for artist in artists.split(',')
+]
+artists = [
+    re.sub("[^A-Za-z0-9]+", "", artist)
+    for artist in artists
+]
+title = re.sub('\(.*\)', '', title)
 title = re.sub("[^A-Za-z0-9]+", "", title)
 
-url = "http://azlyrics.com/lyrics/" + artist + "/" + title + ".html"
+for artist in artists:
+    url = "http://azlyrics.com/lyrics/" + artist + "/" + title + ".html"
 
-try:
-    r = urllib.request.urlopen(url)
-    response = r.read().decode()
-    start = response.find("that. -->")
-    end = response.find("<!-- MxM")
-    lyrics = response[start + 9 : end]
-    lyrics = (
-        html_to_text(lyrics).strip()
-    )
-    print(lyrics)
-except urllib.error.HTTPError:
-    print("Lyrics not found :(", file=sys.stderr)
-    exit(1)
-except Exception as e:
-    print("Unknown error: ", e, file=sys.stderr)
-    exit(2)
+    try:
+        r = urllib.request.urlopen(url)
+        response = r.read().decode()
+        start = response.find("that. -->")
+        end = response.find("<!-- MxM")
+        lyrics = response[start + 9 : end]
+        lyrics = (
+            html_to_text(lyrics).strip()
+        )
+        print(lyrics)
+        exit(0)
+    except urllib.error.HTTPError:
+        if artist is artists[-1]:
+            print("Lyrics not found :(", file=sys.stderr)
+            exit(1)
+    except Exception as e:
+        if artist is artists[-1]:
+            print("Unknown error: ", e, file=sys.stderr)
+            exit(2)
